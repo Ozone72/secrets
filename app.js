@@ -42,16 +42,6 @@ userSchema.plugin(encrypt, {
 
 const User = mongoose.model("User", userSchema);
 
-const secretSchema = new mongoose.Schema({
-  mySecret: String,
-});
-
-secretSchema.plugin(encrypt, {
-  secret: secret,
-});
-
-const Secret = mongoose.model("Secret", secretSchema);
-
 // * ROUTES *
 // Root
 app.get("/", (req, res) => {
@@ -101,19 +91,19 @@ app
   });
 
 // Secret
-app.post("/submit", (req, res) => {
-  const mySecret = req.body.secret;
-  const newSecret = new Secret({
-    mySecret: mySecret,
-  });
-  newSecret.save(function (err) {
-    if (err) {
-      console.log(err);
-    } else {
-      res.redirect("secrets");
-    }
-  });
-});
+// app.post("/submit", (req, res) => {
+//   const mySecret = req.body.secret;
+//   const newSecret = new Secret({
+//     mySecret: mySecret,
+//   });
+//   newSecret.save(function (err) {
+//     if (err) {
+//       console.log(err);
+//     } else {
+//       res.redirect("secrets");
+//     }
+//   });
+// });
 
 // Logout
 app.get("/logout", (req, res) => {
@@ -122,6 +112,10 @@ app.get("/logout", (req, res) => {
 
 // * SERVER *
 const port = 3000;
-app.listen(port, function () {
-  console.log("Server started on " + port);
+app.listen(port, function (err) {
+  if (err) {
+    console.log(err);
+  } else {
+    console.log("Server started on " + port);
+  }
 });
