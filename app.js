@@ -1,4 +1,5 @@
 //jshint esversion:6
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -15,7 +16,7 @@ app.use(
 );
 
 // * CONNECTION *
-const uri = "mongodb://localhost:27017/userDB";
+const uri = process.env.MONGO_URI;
 
 mongoose
   .connect(uri, {
@@ -33,30 +34,60 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 
 // * ROUTES *
+// Root
 app.get("/", (req, res) => {
   res.render("home");
 });
 
-app.get("/login", (req, res) => {
-  res.render("login");
-});
-
-app.get("/register", (req, res) => {
-  res.render("register");
-});
-
-app.post("/register", (req, res) => {
-  const newUser = new User({
-    email: req.body.username,
-    password: req.body.password,
+// Login
+app
+  .route("/login")
+  .get(function (req, res) {
+    res.render("login");
+  })
+  .post(function (req, res) {
+    // TODO
+    const username = req.body.username;
+    const password = req.body.password;
+    User.findOne({ email: username, password: password }, function (
+      err,
+      validUser
+    ) {
+      if (err) {
+        console.log(err);
+      } else {
+        if (validUser) {
+          if (validUser.password === password) {
+            res.render("secrets");
+          }
+        }
+      }
+    });
   });
-  newUser.save(function (err) {
-    if (err) {
-      console.log(err);
-    } else {
-      res.render("secrets");
-    }
+
+// Registration
+app
+  .route("/register")
+  .get(function (req, res) {
+    res.render("register");
+  })
+  .post(function (req, res) {
+    const newUser = new User({
+      email: req.body.username,
+      password: req.body.password,
+    });
+    newUser.save(function (err) {
+      if (err) {
+        console.log(err);
+      } else {
+        res.render("secrets");
+      }
+    });
   });
+
+// Logout
+app.get("/logout", (req, res) => {
+  res.redirect("/");
 });
 
 // * SERVER *
