@@ -4,6 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
 
 const app = express();
 
@@ -26,12 +27,30 @@ mongoose
   .catch((err) => console.log(err.reason));
 
 // * SCHEMA & MODEL
+const secret = process.env.SECRET_KEY;
+
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
 
+// * ENCRYPTION & SIGNING KEYS *
+userSchema.plugin(encrypt, {
+  secret: secret,
+  encryptedFields: ["password"],
+});
+
 const User = mongoose.model("User", userSchema);
+
+const secretSchema = new mongoose.Schema({
+  mySecret: String,
+});
+
+secretSchema.plugin(encrypt, {
+  secret: secret,
+});
+
+const Secret = mongoose.model("Secret", secretSchema);
 
 // * ROUTES *
 // Root
@@ -46,13 +65,9 @@ app
     res.render("login");
   })
   .post(function (req, res) {
-    // TODO
     const username = req.body.username;
     const password = req.body.password;
-    User.findOne({ email: username, password: password }, function (
-      err,
-      validUser
-    ) {
+    User.findOne({ email: username }, function (err, validUser) {
       if (err) {
         console.log(err);
       } else {
@@ -84,6 +99,21 @@ app
       }
     });
   });
+
+// Secret
+app.post("/submit", (req, res) => {
+  const mySecret = req.body.secret;
+  const newSecret = new Secret({
+    mySecret: mySecret,
+  });
+  newSecret.save(function (err) {
+    if (err) {
+      console.log(err);
+    } else {
+      res.redirect("secrets");
+    }
+  });
+});
 
 // Logout
 app.get("/logout", (req, res) => {
