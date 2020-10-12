@@ -4,9 +4,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-
-const saltRounds = 10;
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const app = express();
 
@@ -18,6 +18,17 @@ app.use(
     extended: true,
   })
 );
+
+app.use(session({
+  secret: 'oodie poodie puddin pie',
+  resave: false,
+  saveUninitialized: false
+}));
+
+// Setup passport and session
+app.use(passport.initialize());
+app.use(passport.session());
+
 
 // * CONNECTION *
 const uri = process.env.MONGO_URI;
@@ -35,7 +46,15 @@ const userSchema = new mongoose.Schema({
   password: String,
 });
 
+// configure passport-local-mongoose
+userSchema.plugin(passportLocalMongoose);
+
 const User = mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 // * ROUTES *
 // Root
@@ -44,53 +63,14 @@ app.get("/", (req, res) => {
 });
 
 // Login
-app
-  .route("/login")
-  .get(function (req, res) {
-    res.render("login");
-  })
-  .post(function (req, res) {
-    const username = req.body.username;
-    const password = req.body.password;
-
-    User.findOne({ email: username }, function (err, validUser) {
-      if (err) {
-        console.log(err);
-      } else {
-        if (validUser) {
-          bcrypt.compare(password, validUser.password, function (err, result) {
-            if (result === true) {
-              res.render("secrets");
-            } else {
-              console.log(err);
-            }
-          });
-        }
-      }
-    });
-  });
+app.get('/login', (req, res) => {
+  res.render("login");
+});
 
 // Registration
-app
-  .route("/register")
-  .get(function (req, res) {
-    res.render("register");
-  })
-  .post(function (req, res) {
-    bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
-      const newUser = new User({
-        email: req.body.username,
-        password: hash,
-      });
-      newUser.save(function (err) {
-        if (err) {
-          console.log(err);
-        } else {
-          res.render("secrets");
-        }
-      });
-    });
-  });
+app.get('/register', (req, res) => {
+  res.render('register');
+});
 
 // Logout
 app.get("/logout", (req, res) => {
