@@ -10,6 +10,7 @@ const passportLocalMongoose = require('passport-local-mongoose');
 
 const app = express();
 
+// * MIDDLEWARE *
 app.use(express.static("public"));
 
 app.set("view engine", "ejs");
@@ -20,7 +21,7 @@ app.use(
 );
 
 app.use(session({
-  secret: SESSION_SECRET,
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false
 }));
@@ -70,13 +71,56 @@ app.get('/login', (req, res) => {
   res.render("login");
 });
 
+app.post('/login', (req, res) => {
+  // TODO: Setup route
+  const user = new User({
+    username: req.body.username, 
+    password: req.body.password
+  });
+  
+  req.login(user, function(err) {
+    if (err) {
+      console.log(err);
+    } else {
+      passport.authenticate('local')(req, res, function(){
+        res.redirect("/secrets");
+      })
+    }
+  })
+
+});
+
 // Registration
 app.get('/register', (req, res) => {
   res.render('register');
 });
 
+app.post('/register', (req, res) => {
+  User.register({username: req.body.username, active: false}, req.body.password, function(err, user) {
+    if (err) {
+      console.log(err);
+      res.redirect("/register");
+    } else {
+      passport.authenticate('local')(req, res, function(){
+        res.redirect("/secrets");
+      });
+    }
+  });
+});
+
+// Secrets
+app.get('/secrets', function(req, res){
+  // Checks to see if the user isAuthenticated()
+  if(req.isAuthenticated()){
+    res.render("secrets");
+  } else {
+    res.redirect('/login');
+  }
+});
+
 // Logout
 app.get("/logout", (req, res) => {
+  req.logout();
   res.redirect("/");
 });
 
