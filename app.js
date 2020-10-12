@@ -20,7 +20,7 @@ app.use(
 );
 
 app.use(session({
-  secret: 'oodie poodie puddin pie',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false
 }));
@@ -33,10 +33,13 @@ app.use(passport.session());
 // * CONNECTION *
 const uri = process.env.MONGO_URI;
 
+
+
 mongoose
   .connect(uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    useCreateIndex: true
   })
   .catch((err) => console.log(err.reason));
 
@@ -83,6 +86,6 @@ app.listen(port, function (err) {
   if (err) {
     console.log(err);
   } else {
-    console.log("Server started on " + port);
+    console.log("Server started on port: " + port);
   }
 });
