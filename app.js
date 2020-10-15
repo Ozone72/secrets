@@ -21,12 +21,13 @@ app.use(
 
 app.use(
   session({
-    secret: "I'll never tell you sexy minx...",
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
   })
 );
 
+// Setup passport and session
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -39,6 +40,7 @@ mongoose
     useFindAndModify: false,
     useCreateIndex: true,
     useUnifiedTopology: true,
+    useCreateIndex: true,
   })
   .catch((err) => console.log(err.reason));
 
@@ -48,7 +50,7 @@ const userSchema = new mongoose.Schema({
   password: String,
 });
 
-// This plugin hashes and salts our users
+// configure passport-local-mongoose
 userSchema.plugin(passportLocalMongoose);
 
 const User = mongoose.model("User", userSchema);
@@ -131,6 +133,6 @@ app.listen(port, (err) => {
   if (err) {
     console.log(err);
   } else {
-    console.log("Server started on " + port);
+    console.log("Server started on port: " + port);
   }
 });
