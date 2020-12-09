@@ -9,6 +9,7 @@ const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const FacebookStrategy = require("passport-facebook").Strategy;
 
 const app = express();
 
@@ -48,13 +49,14 @@ mongoose
 
 // * SCHEMA & MODEL
 const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true },
   email: String,
   password: String,
-  googleId: String,
+  provider: String,
 });
 
 // configure passport-local-mongoose
-userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(passportLocalMongoose, { usernameField: "username" });
 // configure mongoose-findorcreate
 userSchema.plugin(findOrCreate);
 
@@ -83,10 +85,40 @@ passport.use(
       callbackURL: "http://localhost:3000/auth/google/secrets",
     },
     function (accessToken, refreshToken, profile, cb) {
-      console.log(profile);
-      User.findOrCreate({ googleId: profile.id }, function (err, user) {
-        return cb(err, user);
-      });
+      // console.log(profile);
+      User.findOrCreate(
+        { username: profile.id },
+        {
+          provider: "google",
+          email: profile._json.email,
+        },
+        function (err, user) {
+          return cb(err, user);
+        }
+      );
+    }
+  )
+);
+
+passport.use(
+  new FacebookStrategy(
+    {
+      clientID: process.env.FACEBOOK_APPID,
+      clientSecret: process.env.FACEBOOK_APPSECRET,
+      callbackURL: "http://localhost:3000/auth/facebook/secrets",
+      profileFields: ["id", "email"],
+    },
+    function (accessToken, refreshToken, profile, cb) {
+      User.findOrCreate(
+        { username: profile.id },
+        {
+          provider: "facebook",
+          email: profile._json.email,
+        },
+        function (err, user) {
+          return cb(err, user);
+        }
+      );
     }
   )
 );
@@ -97,10 +129,10 @@ app.get("/", (req, res) => {
   res.render("home");
 });
 
-// Google OATH2
+// Google OAUTH2
 app.get(
   "/auth/google",
-  passport.authenticate("google", { scope: ["profile"] })
+  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 app.get(
@@ -108,6 +140,21 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   function (req, res) {
     // Successful authentication, redirect home.
+    res.redirect("/secrets");
+  }
+);
+
+// Facebook OAUTH2
+app.get(
+  "/auth/facebook",
+  passport.authenticate("facebook", { scope: ["email"] })
+);
+
+// Facebook will redirect the user to this URL after approval.
+app.get(
+  "/auth/facebook/secrets",
+  passport.authenticate("facebook", { failureRedirect: "/login" }),
+  function (req, res) {
     res.redirect("/secrets");
   }
 );
@@ -142,9 +189,11 @@ app
     res.render("register");
   })
   .post((req, res) => {
+    const username = req.body.username;
+    const password = req.body.password;
     User.register(
-      { username: req.body.username },
-      req.body.password,
+      { username: username, email: username, provider: "local" },
+      password,
       function (err, user) {
         if (err) {
           console.log(err);
