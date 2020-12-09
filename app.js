@@ -4,9 +4,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const findOrCreate = require("mongoose-findorcreate");
 const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
 const app = express();
 
@@ -52,6 +54,8 @@ const userSchema = new mongoose.Schema({
 
 // configure passport-local-mongoose
 userSchema.plugin(passportLocalMongoose);
+// configure mongoose-findorcreate
+userSchema.plugin(findOrCreate);
 
 const User = mongoose.model("User", userSchema);
 
@@ -60,6 +64,22 @@ passport.use(User.createStrategy());
 
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
+
+// * OATH2 SETUP
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.OATH2_CLIENTID,
+      clientSecret: process.env.OATH2_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/secrets",
+    },
+    function (accessToken, refreshToken, profile, cb) {
+      User.findOrCreate({ googleId: profile.id }, function (err, user) {
+        return cb(err, user);
+      });
+    }
+  )
+);
 
 // * ROUTES *
 // Root
@@ -97,19 +117,20 @@ app
     res.render("register");
   })
   .post((req, res) => {
-    User.register({ username: req.body.username }, req.body.password, function (
-      err,
-      user
-    ) {
-      if (err) {
-        console.log(err);
-        res.redirect("/register");
-      } else {
-        passport.authenticate("local")(req, res, function () {
-          res.redirect("/secrets");
-        });
+    User.register(
+      { username: req.body.username },
+      req.body.password,
+      function (err, user) {
+        if (err) {
+          console.log(err);
+          res.redirect("/register");
+        } else {
+          passport.authenticate("local")(req, res, function () {
+            res.redirect("/secrets");
+          });
+        }
       }
-    });
+    );
   });
 
 // Secrets
