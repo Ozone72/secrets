@@ -85,7 +85,6 @@ passport.use(
       callbackURL: "http://localhost:3000/auth/google/secrets",
     },
     function (accessToken, refreshToken, profile, cb) {
-      // console.log(profile);
       User.findOrCreate(
         { username: profile.id },
         {
