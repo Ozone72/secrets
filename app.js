@@ -207,32 +207,20 @@ app
     );
   });
 
-// Secrets
-app.get("/secrets", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
-});
-
-app.get('/submit', (req, res) => {
-  // TODO: code here
-  if (req.isAuthenticated()) {
-    res.render("submit");
-  } else {
-    res.redirect("/login");
-  }
-});
-
+// Secrets route
 app
-  .route("/submit")
+  .route("/secrets")
   .get((req, res) => {
-    if (req.isAuthenticated()) {
-      res.render("submit");
-    } else {
-      res.redirect("/login");
-    };
+    User.find({"secret": {$ne: null}}, function(err, foundUsers){
+      if (err) {
+        console.log(err)
+      } else {
+        if(foundUsers){
+          console.log(foundUsers);
+          res.render("secrets", {userSecrets: foundUsers});
+        }
+      }
+    });
   })
   .post((req, res)=>{
     const submittedSecret = req.body.secret;
@@ -252,6 +240,17 @@ app
       }
     })
   });
+
+// Submit route
+app.get('/submit', (req, res) => {
+  // TODO: code here
+  if (req.isAuthenticated()) {
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+});
+
 
 // Logout
 app.get("/logout", (req, res) => {
