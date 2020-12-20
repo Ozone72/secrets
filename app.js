@@ -216,7 +216,6 @@ app
         console.log(err)
       } else {
         if(foundUsers){
-          console.log(foundUsers);
           res.render("secrets", {userSecrets: foundUsers});
         }
       }
@@ -226,7 +225,6 @@ app
     const submittedSecret = req.body.secret;
     const currentUser = req.user.id;
     
-    console.log(currentUser);
     User.findById(currentUser, (err, foundUser) => {
       if (err) {
         console.log(err);
