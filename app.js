@@ -53,6 +53,7 @@ const userSchema = new mongoose.Schema({
   email: String,
   password: String,
   provider: String,
+  secret: String,
 });
 
 // configure passport-local-mongoose
@@ -214,6 +215,43 @@ app.get("/secrets", (req, res) => {
     res.redirect("/login");
   }
 });
+
+app.get('/submit', (req, res) => {
+  // TODO: code here
+  if (req.isAuthenticated()) {
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app
+  .route("/submit")
+  .get((req, res) => {
+    if (req.isAuthenticated()) {
+      res.render("submit");
+    } else {
+      res.redirect("/login");
+    };
+  })
+  .post((req, res)=>{
+    const submittedSecret = req.body.secret;
+    const currentUser = req.user.id;
+    
+    console.log(currentUser);
+    User.findById(currentUser, (err, foundUser) => {
+      if (err) {
+        console.log(err);
+      } else {
+        if(foundUser) {
+          foundUser.secret = submittedSecret;
+          foundUser.save(function(){
+            res.redirect("/secrets")
+          })
+        }
+      }
+    })
+  });
 
 // Logout
 app.get("/logout", (req, res) => {
